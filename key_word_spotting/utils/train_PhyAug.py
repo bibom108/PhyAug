@@ -15,6 +15,8 @@ import time
 import model as mod
 from manage_audio import AudioPreprocessor
 
+
+device = torch.device("cuda")
 use_tf = True
 my_t = 300
 
@@ -67,17 +69,15 @@ def evaluate(config, model=None, test_loader=None):
             batch_size= config["batch_size"], # len(test_set),
             num_workers=32,
             collate_fn=test_set.collate_fn)
-    
-    if not config["no_cuda"]:
-        torch.cuda.set_device(config["gpu_no"])
+
     if not model:
         model = config["model_class"](config)
         print(model)
         model.load(config["input_file"])
     # print("loaded model...")
     if not config["no_cuda"]:
-        torch.cuda.set_device(config["gpu_no"])
-        model.cuda()
+        model= nn.DataParallel(model)
+        model.to(device)
     model.eval()
     criterion = nn.CrossEntropyLoss()
     results = []
@@ -86,8 +86,8 @@ def evaluate(config, model=None, test_loader=None):
     for model_in, labels in test_loader:
         model_in = Variable(model_in, requires_grad=False)
         if not config["no_cuda"]:
-            model_in = model_in.cuda()
-            labels = labels.cuda()
+            model_in = model_in.to(device)
+            labels = labels.to(device)
             print("labels shape = ",labels.shape)
         scores = model(model_in)
         labels = Variable(labels, requires_grad=False)
@@ -109,8 +109,7 @@ def train(config):
     if config["input_file"]:
         model.load(config["input_file"])
     if not config["no_cuda"]:
-        torch.cuda.set_device(config["gpu_no"])
-        model.cuda()
+        model.to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=config["lr"][0], nesterov=config["use_nesterov"], weight_decay=config["weight_decay"], momentum=config["momentum"])
     schedule_steps = config["schedule"]
     schedule_steps.append(np.inf)
@@ -122,7 +121,8 @@ def train(config):
         # compute tf then add to pre-processor
         tf = mod.get_tf_phyaug(my_t)
         print("tf shape = ",tf[0].shape)
-        audio_processor = mod.AudioPreprocessor(n_mels=config["n_mels"], n_dct_filters=config["n_dct_filters"], hop_ms=10, tf = tf)
+        audio_processor = mod.AudioPreprocessor(n_mels=config["n_mels"], n_dct_filters=config["n_dct_filters"], 
+                                                hop_ms=10, tf = tf, sigma_level=config['sigma_level'])
         train_set.audio_processor = audio_processor
         dev_set.audio_processor = audio_processor
         test_set.audio_processor = audio_processor
@@ -130,19 +130,19 @@ def train(config):
             train_set,
             batch_size=config["batch_size"],
             shuffle=True, drop_last=True,
-            num_workers = 32,
+            # num_workers = 32,
             collate_fn=train_set.collate_fn_with_tf)
         dev_loader = data.DataLoader(
             dev_set,
             batch_size=min(len(dev_set), 64),
             shuffle=False,
-            num_workers = 32,
+            # num_workers = 32,
             collate_fn=dev_set.collate_fn_with_tf)
         test_loader = data.DataLoader(
             test_set,
             batch_size=config["batch_size"],
             shuffle=False,
-            num_workers = 32,
+            # num_workers = 32,
             collate_fn=test_set.collate_fn_with_tf)
     else:
         train_loader = data.DataLoader(
@@ -171,14 +171,16 @@ def train(config):
             model.train()
             optimizer.zero_grad()
             if not config["no_cuda"]:
-                model_in = model_in.cuda()
-                labels = labels.cuda()
+                model_in = model_in.to(device)
+                labels = labels.to(device)
             model_in = Variable(model_in, requires_grad=False) # model_in is batch data, shape is [batch_size,x,MFCC_dim=40]
             # print(f"model input looks like: {model_in.shape}, {model_in[0][0]}")
-            # exit()
+
             scores = model(model_in)
             labels = Variable(labels, requires_grad=False)
             loss = criterion(scores, labels)
+            print(scores)
+            exit()
             loss.backward()
             optimizer.step()
             step_no += 1
@@ -195,8 +197,8 @@ def train(config):
             for model_in, labels in dev_loader:
                 model_in = Variable(model_in, requires_grad=False)
                 if not config["no_cuda"]:
-                    model_in = model_in.cuda()
-                    labels = labels.cuda()
+                    model_in = model_in.to(device)
+                    labels = labels.to(device)
                 scores = model(model_in)
                 labels = Variable(labels, requires_grad=False)
                 loss = criterion(scores, labels)
@@ -212,16 +214,16 @@ def train(config):
             #     break
             if avg_acc > max_acc:
                 print("saving best model...")
-                model.save(config["output_file"])
+                model.module.save(config["output_file"])
                 best_model=copy.deepcopy(model)
                 max_acc = avg_acc
         epoch_end = time.time()
         print("epoch ",epoch_idx, "execution time ",epoch_end-epoch_start)
-    evaluate(config, best_model, test_loader)
+    # evaluate(config, best_model, test_loader)
     train_end = time.time()
     print("train ended at ",epoch_idx, "total training time ",(train_end-train_start)/3600,"hours")
-def main():
-    model_name = "your_model_name.pt"
+def main(sigma_level):
+    model_name = f"sigma={sigma_level}.pt"
     print("model name ",model_name)
     output_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "model", model_name)
     parser = argparse.ArgumentParser()
@@ -229,7 +231,8 @@ def main():
     config, _ = parser.parse_known_args()
 
     global_config = dict(no_cuda=False, n_epochs=50, lr=[0.001], schedule=[np.inf], batch_size=64, dev_every=10, seed=0,
-        use_nesterov=False, input_file="", output_file=output_file, gpu_no=1, cache_size=32768, momentum=0.9, weight_decay=0.00001)
+        use_nesterov=False, input_file="", output_file=output_file, gpu_no=[0,1], cache_size=32768, momentum=0.9, weight_decay=0.00001,
+        sigma_level = sigma_level)
     mod_cls = mod.find_model(config.model)
     builder = ConfigBuilder(
         mod.find_config(config.model),
@@ -248,4 +251,5 @@ def main():
         evaluate(config)
 
 if __name__ == "__main__":
-    main()
+    for sigma_level in [0.1, 0.25, 2.0]:
+        main(sigma_level)

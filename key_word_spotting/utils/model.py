@@ -422,17 +422,17 @@ def fft_to_obtain_tf_time(x1,x2,s):
 
 def get_tf_phyaug(t):
     flist = [
-        "../data/recorded_dataset/white-noise/white-noise-true-20min.wav",
-        "../data/recorded_dataset/white-noise/ATR-white.wav",
-        "../data/recorded_dataset/white-noise/clipon-white.wav",
-        "../data/recorded_dataset/white-noise/maono-white.wav",
-        "../data/recorded_dataset/white-noise/USB-white.wav",
-        "../data/recorded_dataset/white-noise/USBplug-white.wav",
-        "../data/recorded_dataset/white-noise/ATR-silence.wav",
-        "../data/recorded_dataset/white-noise/clipon-silence.wav",
-        "../data/recorded_dataset/white-noise/maono-silence.wav",
-        "../data/recorded_dataset/white-noise/USB-silence.wav",
-        "../data/recorded_dataset/white-noise/USBplug-silence.wav"
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/white-noise-true-20min.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/ATR-white.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/clipon-white.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/maono-white.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/USB-white.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/USBplug-white.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/ATR-silence.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/clipon-silence.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/maono-silence.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/USB-silence.wav",
+        "/home/phuc/Desktop/main/PhyAug/key_word_spotting/data/recorded_dataset/white_noise/USBplug-silence.wav"
         ]
     tf_atr = fft_to_obtain_tf_time(flist[0],flist[1],t) + stft_ave_no_DC(flist[6])
     tf_clipon = fft_to_obtain_tf_time(flist[0],flist[2],t) + stft_ave_no_DC(flist[7])
@@ -551,7 +551,12 @@ class SpeechDataset(data.Dataset):
         # config["wanted_words"] = ["yes", "no","left","right"]
         config["wanted_words"] = ["yes", "no","left","right","up","down","on","off","stop","go"]
         # config["wanted_words"] = ["house"]
-        config["data_folder"] = "../honk/speech_dataset_wenjie/meetingroom/loc2-45cm-10cmd/ATR"
+        # config["data_folder"] = "../data/recorded_dataset/ATR"
+        # config["data_folder"] = "../data/recorded_dataset/clipon"
+        # config["data_folder"] = "../data/recorded_dataset/maono"
+        # config["data_folder"] = "../data/recorded_dataset/USB"
+        # config["data_folder"] = "../data/recorded_dataset/USBplug"
+        config["data_folder"] = "/data2/phuc/speech_dataset"
         config["audio_preprocess_type"] = "MFCCs"
         return config
 

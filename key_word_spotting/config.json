@@ -7,7 +7,7 @@
     "model_path": "model/model.pt",
     "backend": "pytorch",
     "train_script": "utils/model.py",
-    "speech_dataset_path": "/tmp/speech_dataset/",
+    "speech_dataset_path": "/data2/phuc/speech_dataset/",
     "model_options": {
         "no_cuda": false,
         "dev_pct": 5,
@@ -15,9 +15,9 @@
         "train_pct": 95,
         "n_epochs": "300",
         "dev_every": 5,
-        "data_folder": "/tmp/speech_dataset/",
+        "data_folder": "/data2/phuc/speech_dataset/",
         "output_file": "model/model.pt",
         "unknown_prob": 0.2,
-        "gpu_no": 0
+        "gpu_no": 3
     }
 }
