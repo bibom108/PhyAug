@@ -208,15 +208,15 @@ def train(config):
             requires_grad_(model, False)
             trans.train()
             requires_grad_(trans, True)
-            # max_bar = tqdm(max_train_loader, total=len(max_train_loader))
-            max_bar = tqdm(source_loader, total=len(source_loader))
+            max_bar = tqdm(max_train_loader, total=len(max_train_loader))
+            # max_bar = tqdm(source_loader, total=len(source_loader))
             for _, (inputs, labels) in enumerate(max_bar):
-                # for input in dro.forward(inputs, labels, model, trans, _):
-                #     if not torch.isnan(input).any(): 
-                #         aug_x.append(input.detach().clone().cpu())
-                #         aug_y.append(labels.cpu())
-                aug_x.append(inputs.detach().clone().cpu())
-                aug_y.append(labels.cpu())
+                for input in dro.forward(inputs, labels, model, trans, _):
+                    if not torch.isnan(input).any(): 
+                        aug_x.append(input.detach().clone().cpu())
+                        aug_y.append(labels.cpu())
+                # aug_x.append(inputs.detach().clone().cpu())
+                # aug_y.append(labels.cpu())
             
             aug_x = list(torch.unbind(torch.cat(aug_x)))
             aug_y = list(torch.unbind(torch.cat(aug_y)))
